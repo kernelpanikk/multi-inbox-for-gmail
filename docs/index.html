@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi Inbox for Gmail</title>
+  <meta name="description" content="A lightweight Chromium extension that shows unread mail from all your Gmail accounts in one place — no passwords, no servers, no OAuth setup.">
+  <link rel="icon" href="../extension/icons/icon32.png">
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --surface: #ffffff;
+      --text: #1b1d28;
+      --muted: #5d6275;
+      --border: #e1e4ef;
+      --accent: #3949ab;
+      --accent-soft: #e8eaf6;
+      --green: #188038;
+      --code: #eef0f7;
+      --on-accent: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #12131a;
+        --surface: #1b1d27;
+        --text: #e7e9f2;
+        --muted: #9ba1b6;
+        --border: #2c2f3d;
+        --accent: #8c9eff;
+        --accent-soft: #252a45;
+        --green: #81c995;
+        --code: #232633;
+        --on-accent: #12131a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+    code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: .9em; }
+
+    nav { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
+    nav img { width: 32px; height: 32px; }
+    nav strong { flex: 1; }
+    nav a { text-decoration: none; color: var(--muted); font-size: 15px; }
+    nav a:hover { color: var(--text); }
+
+    .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 48px 0 72px; }
+    .eyebrow { color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+    h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.1; margin: 10px 0 18px; letter-spacing: -.02em; }
+    .lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn {
+      display: inline-block; padding: 11px 20px; border-radius: 10px; font-weight: 600;
+      text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface);
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; padding: 0; list-style: none; }
+    .pills li { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+
+    .device {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 20px 50px -20px #1b1d2840; overflow: hidden; max-width: 400px; justify-self: center; width: 100%;
+    }
+    .device-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .device-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+    .device-bar span { margin-left: auto; font-size: 12px; color: var(--muted); }
+    .device iframe { display: block; width: 100%; height: 470px; border: 0; background: #fff; }
+    .caption { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+    section { padding: 64px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 30px; margin: 0 0 8px; letter-spacing: -.01em; }
+    .sub { color: var(--muted); margin: 0 0 36px; max-width: 680px; }
+
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+    .card h3 { margin: 0 0 6px; font-size: 17px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    .card .ic { font-size: 22px; margin-bottom: 10px; display: block; }
+
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .diagram svg { width: 100%; height: auto; display: block; }
+    .diagram text { font: 14px system-ui, sans-serif; fill: var(--text); }
+    .diagram .small { font-size: 12px; fill: var(--muted); }
+    .diagram .box { fill: var(--bg); stroke: var(--border); stroke-width: 1.5; }
+    .diagram .box.hl { fill: var(--accent-soft); stroke: var(--accent); }
+    .diagram .arrow { stroke: var(--accent); stroke-width: 2; fill: none; marker-end: url(#head); }
+    .steps { counter-reset: s; list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 32px; }
+    .steps li { counter-increment: s; position: relative; padding-left: 40px; color: var(--muted); }
+    .steps li::before {
+      content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+      background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 700; display: grid; place-items: center;
+    }
+    .steps strong { color: var(--text); }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+    .check { list-style: none; padding: 0; margin: 0; }
+    .check li { padding: 8px 0 8px 30px; position: relative; border-bottom: 1px solid var(--border); }
+    .check li::before { content: "✓"; position: absolute; left: 4px; color: var(--green); font-weight: 700; }
+    .options-frame { width: 100%; height: 520px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+
+    ol.install { padding-left: 20px; }
+    ol.install li { margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+
+    footer { padding: 36px 0 48px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 860px) {
+      .hero, .split { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero { padding-top: 24px; }
+      nav a.hide-sm { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <img src="../extension/icons/icon48.png" alt="">
+      <strong>Multi Inbox for Gmail</strong>
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#privacy">Privacy</a>
+      <a href="https://github.com/kernelpanikk/multi-inbox-for-gmail">GitHub</a>
+    </nav>
+
+    <div class="hero">
+      <div>
+        <div class="eyebrow">Browser extension · Manifest V3</div>
+        <h1>All your Gmail inboxes, one click away.</h1>
+        <p class="lead">
+          Juggling a personal, a work and a side-project account? Multi Inbox shows unread mail from every
+          Gmail account in a single popup, with a combined badge and desktop notifications —
+          without asking for a single password.
+        </p>
+        <div class="buttons">
+          <a class="btn primary" href="#install">Install it</a>
+          <a class="btn" href="https://github.com/kernelpanikk/multi-inbox-for-gmail">View source</a>
+        </div>
+        <ul class="pills">
+          <li>Vanilla JavaScript</li>
+          <li>Zero dependencies</li>
+          <li>No build step</li>
+          <li>No backend</li>
+          <li>Brave · Chrome · Edge</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device">
+          <div class="device-bar"><i></i><i></i><i></i><span>Toolbar popup</span></div>
+          <iframe src="demo/popup.html?expand=1"title="Interactive demo of the extension popup" loading="lazy"></iframe>
+        </div>
+        <p class="caption">Live demo: the real extension code running on sample data. Click an account to expand it.</p>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <h2>What it does</h2>
+      <p class="sub">A small tool for a common annoyance: Gmail only shows one account at a time, so mail in the others goes unnoticed.</p>
+      <div class="grid">
+        <div class="card"><span class="ic">📬</span><h3>Every inbox at a glance</h3><p>One list with each account's label, color and unread count. Expand an account to see sender, subject and preview of its latest unread mail.</p></div>
+        <div class="card"><span class="ic">🔴</span><h3>Combined badge</h3><p>The toolbar icon shows the total unread count across all accounts, and a "!" if one of them needs you to sign in again.</p></div>
+        <div class="card"><span class="ic">🔔</span><h3>New mail notifications</h3><p>A desktop notification when something new arrives, grouped per account. Click it to jump straight to the conversation.</p></div>
+        <div class="card"><span class="ic">↗️</span><h3>Opens the right account</h3><p>"Open", "Compose" and every message link land in the correct account, instead of whichever one Gmail considers the default.</p></div>
+        <div class="card"><span class="ic">⚙️</span><h3>Simple setup</h3><p>Add an address, give it a label and a color, reorder the list. A "Check" button confirms each account is reachable.</p></div>
+        <div class="card"><span class="ic">🔒</span><h3>Private by design</h3><p>No passwords, no tokens, no servers. Mail data never leaves your browser.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">
+        Instead of the Gmail API, which needs an OAuth app and Google's security review, the extension reads Gmail's
+        built-in Atom feed using the sessions you are already signed in to.
+      </p>
+      <div class="diagram">
+        <svg viewBox="0 0 960 230" role="img" aria-label="Data flow: an alarm wakes the service worker, which fetches the Gmail Atom feed for each account using the browser's existing session, then updates the badge, notifications and popup.">
+          <defs>
+            <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+          <rect class="box" x="10" y="70" width="170" height="80" rx="10"/>
+          <text x="95" y="105" text-anchor="middle">chrome.alarms</text>
+          <text class="small" x="95" y="126" text-anchor="middle">every 1–30 min</text>
+
+          <rect class="box hl" x="250" y="60" width="210" height="100" rx="10"/>
+          <text x="355" y="98" text-anchor="middle">Service worker</text>
+          <text class="small" x="355" y="120" text-anchor="middle">fetch · parse · diff</text>
+          <text class="small" x="355" y="138" text-anchor="middle">gmail.js</text>
+
+          <rect class="box" x="530" y="10" width="220" height="80" rx="10"/>
+          <text x="640" y="44" text-anchor="middle">mail.google.com</text>
+          <text class="small" x="640" y="66" text-anchor="middle">/feed/atom?authuser=…</text>
+
+          <rect class="box" x="530" y="130" width="220" height="80" rx="10"/>
+          <text x="640" y="164" text-anchor="middle">chrome.storage</text>
+          <text class="small" x="640" y="186" text-anchor="middle">settings · cache · seen ids</text>
+
+          <rect class="box" x="810" y="10" width="140" height="56" rx="10"/>
+          <text x="880" y="43" text-anchor="middle">Badge</text>
+          <rect class="box" x="810" y="82" width="140" height="56" rx="10"/>
+          <text x="880" y="115" text-anchor="middle">Notifications</text>
+          <rect class="box" x="810" y="154" width="140" height="56" rx="10"/>
+          <text x="880" y="187" text-anchor="middle">Popup</text>
+
+          <path class="arrow" d="M180 110 H246"/>
+          <path class="arrow" d="M460 90 C495 80 500 55 526 52"/>
+          <path class="arrow" d="M460 130 C495 140 500 165 526 168"/>
+          <path class="arrow" d="M750 40 C780 40 780 38 806 38"/>
+          <path class="arrow" d="M750 60 C785 70 780 108 806 110"/>
+          <path class="arrow" d="M750 170 C780 175 785 182 806 182"/>
+        </svg>
+      </div>
+      <ol class="steps">
+        <li><strong>An alarm wakes the service worker</strong> at the interval you choose (Manifest V3 workers don't stay alive, so polling uses <code>chrome.alarms</code>).</li>
+        <li><strong>One feed request per account</strong>, in parallel, to <code>mail.google.com/mail/feed/atom?authuser=&lt;address&gt;</code>. The browser attaches your existing Google cookies.</li>
+        <li><strong>The response is verified</strong>: if an account isn't signed in, Google may answer for a different one, so the feed title is checked against the expected address.</li>
+        <li><strong>XML is parsed without a DOM</strong> (service workers have no <code>DOMParser</code>) into sender, subject, snippet, date and link.</li>
+        <li><strong>New messages are detected</strong> by diffing ids against the previous check; the first check of an account never notifies, to avoid a burst.</li>
+        <li><strong>Badge, notifications and cache are updated.</strong> The popup renders the cache instantly, then refreshes in the background.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split">
+      <div>
+        <h2>Settings</h2>
+        <p class="sub">Accounts and preferences live in <code>chrome.storage.sync</code>, so they follow you to every browser where you're signed in.</p>
+        <ul class="check">
+          <li>Add any number of Gmail or Google Workspace addresses</li>
+          <li>Label and color each account</li>
+          <li>Reorder with ↑ / ↓</li>
+          <li>Check each account's connection with one click</li>
+          <li>Choose how often to check: 1 to 30 minutes</li>
+          <li>Turn desktop notifications on or off</li>
+        </ul>
+      </div>
+      <iframe class="options-frame" src="demo/options.html" title="Interactive demo of the settings page" loading="lazy"></iframe>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="wrap">
+      <h2>Privacy and permissions</h2>
+      <p class="sub">The extension asks for as little as possible. Nothing is collected, sent anywhere or shared. Read the full <a href="https://github.com/kernelpanikk/multi-inbox-for-gmail/blob/main/PRIVACY.md">privacy policy</a>.</p>
+      <table>
+        <thead><tr><th>Permission</th><th>Why it's needed</th></tr></thead>
+        <tbody>
+          <tr><td><code>https://mail.google.com/*</code></td><td>Read the unread-mail feed of the accounts you add, using your existing browser session.</td></tr>
+          <tr><td><code>storage</code></td><td>Save your account list and preferences, and cache the last result so the popup opens instantly.</td></tr>
+          <tr><td><code>alarms</code></td><td>Check for new mail periodically in the background.</td></tr>
+          <tr><td><code>notifications</code></td><td>Tell you when new mail arrives (can be turned off).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap split">
+      <div>
+        <h2>Install</h2>
+        <p class="sub">Works in any Chromium-based browser.</p>
+        <ol class="install">
+          <li>Download or clone the <a href="https://github.com/kernelpanikk/multi-inbox-for-gmail">repository</a>.</li>
+          <li>Open <code>brave://extensions</code> (or <code>chrome://extensions</code>, <code>edge://extensions</code>).</li>
+          <li>Turn on <strong>Developer mode</strong>.</li>
+          <li>Click <strong>Load unpacked</strong> and select the <code>extension</code> folder.</li>
+          <li>The settings page opens: add your Gmail addresses.</li>
+        </ol>
+        <p class="sub">Each account must be signed in to the browser. Sign in once at mail.google.com and use "Add another account" for the others.</p>
+      </div>
+      <div>
+        <h2>Limitations</h2>
+        <ul class="check">
+          <li>Read-only: marking as read, archiving and replying happen in Gmail itself</li>
+          <li>Shows the inbox's 20 most recent unread messages (a limit of Gmail's feed)</li>
+          <li>The Atom feed is a long-standing but undocumented Gmail endpoint</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      Built by <a href="https://github.com/kernelpanikk">kernelpanikk</a> · MIT License ·
+      Not affiliated with or endorsed by Google. Gmail is a trademark of Google LLC.
+    </div>
+  </footer>
+</body>
+</html>

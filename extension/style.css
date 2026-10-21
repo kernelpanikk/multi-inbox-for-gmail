@@ -1,0 +1,100 @@
+:root {
+  --bg: #ffffff;
+  --surface: #f6f8fc;
+  --text: #1f1f1f;
+  --muted: #5f6368;
+  --border: #e0e3e7;
+  --accent: #0b57d0;
+  --red: #d93025;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1f1f;
+    --surface: #2a2b2e;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --border: #3c4043;
+    --accent: #8ab4f8;
+    --red: #f28b82;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+button, input, select { font: inherit; color: inherit; }
+button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+/* Popup */
+body.popup { width: 380px; }
+header, footer {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+}
+header { border-bottom: 1px solid var(--border); }
+header h1 { font-size: 14px; margin: 0; flex: 1; }
+footer { border-top: 1px solid var(--border); justify-content: space-between; font-size: 11px; }
+#accounts { max-height: 480px; overflow-y: auto; }
+.account { border-bottom: 1px solid var(--border); }
+.account-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer;
+}
+.account-head:hover { background: var(--surface); }
+.account-name { flex: 1; min-width: 0; }
+.account-name strong, .account-name span {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.account-name span { color: var(--muted); font-size: 11px; }
+.count {
+  min-width: 22px; padding: 1px 7px; border-radius: 10px;
+  background: var(--red); color: var(--bg); font-weight: 600; text-align: center;
+}
+.count.zero { background: var(--surface); color: var(--muted); }
+.actions { display: flex; gap: 4px; }
+.actions button { padding: 2px 8px; font-size: 12px; }
+.mails { display: none; background: var(--surface); }
+.account.open .mails { display: block; }
+.mail {
+  display: block; padding: 8px 12px 8px 32px;
+  text-decoration: none; color: inherit; border-top: 1px solid var(--border);
+}
+.mail:hover { background: var(--bg); }
+.mail-top { display: flex; gap: 8px; }
+.mail-from { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-date { color: var(--muted); font-size: 11px; flex: none; }
+.mail-subject, .mail-snippet { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-snippet { color: var(--muted); font-size: 12px; }
+.note { padding: 8px 12px 8px 32px; color: var(--muted); }
+.empty { padding: 24px 16px; text-align: center; }
+
+/* Impostazioni */
+body.options { max-width: 640px; margin: 0 auto; padding: 24px 16px; background: var(--bg); }
+.options h1 { font-size: 20px; }
+.options h2 { font-size: 15px; margin-top: 28px; }
+.row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.row input[type="text"], .row input[type="email"] {
+  flex: 1; min-width: 0; padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+}
+.row input[type="color"] { width: 32px; height: 30px; padding: 0; border: none; background: none; }
+form.row { border-bottom: none; }
+.field { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+select { padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.hint { font-size: 12px; color: var(--muted); }
+#status { color: var(--accent); min-height: 1.4em; }

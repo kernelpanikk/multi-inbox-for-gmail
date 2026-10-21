@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi Inbox for Gmail — Settings demo</title>
+  <link rel="stylesheet" href="../../extension/style.css">
+</head>
+<body class="options">
+  <!-- Same markup as extension/options.html; the script below is the real options.js. -->
+  <h1>Multi Inbox for Gmail</h1>
+  <p class="hint">
+    Add the Gmail addresses you want to watch. Each account must be signed in to this browser
+    (sign in once at <a href="https://mail.google.com" target="_blank">mail.google.com</a>
+    and use "Add another account" for the others). No passwords are stored.
+  </p>
+
+  <h2>Accounts</h2>
+  <div id="list"></div>
+  <form id="add" class="row">
+    <input type="color" id="color" value="#0b57d0" title="Color">
+    <input type="text" id="name" placeholder="Label (e.g. Work)">
+    <input type="email" id="email" placeholder="address@gmail.com" required>
+    <button class="primary" type="submit">Add</button>
+  </form>
+
+  <h2>Preferences</h2>
+  <label class="field">
+    Check for new mail every
+    <select id="interval">
+      <option value="1">1 minute</option>
+      <option value="2">2 minutes</option>
+      <option value="5">5 minutes</option>
+      <option value="10">10 minutes</option>
+      <option value="30">30 minutes</option>
+    </select>
+  </label>
+  <label class="field">
+    <input type="checkbox" id="notify"> Show a notification when new email arrives
+  </label>
+  <p id="status"></p>
+
+  <script src="mock-chrome.js"></script>
+  <script type="module" src="../../extension/options.js"></script>
+</body>
+</html>

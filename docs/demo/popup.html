@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi Inbox for Gmail — Popup demo</title>
+  <link rel="stylesheet" href="../../extension/style.css">
+  <style>body.popup { width: auto; max-width: 380px; }</style>
+</head>
+<body class="popup">
+  <!-- Same markup as extension/popup.html; the script below is the real popup.js. -->
+  <header>
+    <h1>Your inboxes</h1>
+    <button id="refresh" title="Refresh">↻</button>
+    <button id="settings" title="Settings">⚙</button>
+  </header>
+  <main id="accounts"></main>
+  <footer>
+    <span id="updated" class="muted"></span>
+    <span id="total" class="muted"></span>
+  </footer>
+  <script src="mock-chrome.js"></script>
+  <script type="module" src="../../extension/popup.js"></script>
+  <script>
+    // ?expand=N opens the Nth account once loaded (used for the README screenshots).
+    const n = new URLSearchParams(location.search).get('expand');
+    if (n) setTimeout(() => document.querySelectorAll('.account-head')[n - 1]?.click(), 800);
+  </script>
+</body>
+</html>
