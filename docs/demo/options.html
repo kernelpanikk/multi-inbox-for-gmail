@@ -10,19 +10,13 @@
   <!-- Same markup as extension/options.html; the script below is the real options.js. -->
   <h1>Multi Inbox for Gmail</h1>
   <p class="hint">
-    Add the Gmail addresses you want to watch. Each account must be signed in to this browser
-    (sign in once at <a href="https://mail.google.com" target="_blank">mail.google.com</a>
-    and use "Add another account" for the others). No passwords are stored.
+    Click "Add account" and sign in with Google in the tab that opens: the account is added
+    automatically. Passwords stay with Google; the extension never sees them.
   </p>
 
   <h2>Accounts</h2>
   <div id="list"></div>
-  <form id="add" class="row">
-    <input type="color" id="color" value="#0b57d0" title="Color">
-    <input type="text" id="name" placeholder="Label (e.g. Work)">
-    <input type="email" id="email" placeholder="address@gmail.com" required>
-    <button class="primary" type="submit">Add</button>
-  </form>
+  <button class="primary" type="button" id="add">Add account</button>
 
   <h2>Preferences</h2>
   <label class="field">

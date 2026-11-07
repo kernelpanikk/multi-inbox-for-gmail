@@ -58,10 +58,8 @@ Works in Brave, Chrome, Edge and other Chromium-based browsers.
 2. Open `brave://extensions` (or `chrome://extensions`, `edge://extensions`).
 3. Turn on **Developer mode**.
 4. Click **Load unpacked** and select the [`extension`](extension) folder.
-5. The settings page opens: add the Gmail addresses you want to watch.
-
-Each account must be signed in to the browser: sign in once at [mail.google.com](https://mail.google.com)
-and use **Add another account** for the others.
+5. The settings page opens: click **Add account** and sign in with Google in the tab that opens.
+   The account is added automatically; repeat for each one.
 
 ## How it works
 

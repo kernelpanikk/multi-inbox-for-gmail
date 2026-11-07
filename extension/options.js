@@ -1,4 +1,4 @@
-import { getSettings, fetchInbox } from './gmail.js';
+import { getSettings, fetchInbox, loginUrl, signedInAccounts } from './gmail.js';
 
 const COLORS = ['#0b57d0', '#d93025', '#188038', '#f9ab00', '#a142f4', '#e8710a', '#12b5cb'];
 const listEl = document.getElementById('list');
@@ -48,9 +48,10 @@ function render() {
       test.disabled = true;
       const r = await fetchInbox(acc.email);
       test.disabled = false;
+      if (r.error === 'login') chrome.tabs.create({ url: loginUrl(acc.email) });
       status(r.ok
         ? `${acc.email}: connected, ${r.count} unread.`
-        : `${acc.email}: not signed in. Sign in to this account in the browser and try again.`);
+        : `${acc.email}: not signed in. Sign in in the tab that just opened, then check again.`);
     });
     const up = button('↑', () => move(i, -1));
     up.disabled = i === 0;
@@ -80,26 +81,25 @@ function move(i, dir) {
   save();
 }
 
-document.getElementById('add').onsubmit = async e => {
-  e.preventDefault();
-  const emailInput = document.getElementById('email');
-  const nameInput = document.getElementById('name');
-  const colorInput = document.getElementById('color');
-  const email = emailInput.value.trim().toLowerCase();
-  if (!email) return;
-  if (accounts.some(a => a.email === email)) {
-    status('This account is already in the list.');
-    return;
-  }
-  accounts.push({ email, name: nameInput.value.trim(), color: colorInput.value });
-  emailInput.value = '';
-  nameInput.value = '';
-  colorInput.value = COLORS[accounts.length % COLORS.length];
-  await save();
-  const r = await fetchInbox(email);
-  status(r.ok
-    ? `Added ${email}: connected, ${r.count} unread.`
-    : `Added ${email}, but it is not signed in to the browser: sign in to it at mail.google.com.`);
+document.getElementById('add').onclick = async () => {
+  // Prefer accounts that appear after this login, so other open sessions aren't added too.
+  const before = await signedInAccounts();
+  const tab = await chrome.tabs.create({
+    url: `https://accounts.google.com/AddSession?continue=${encodeURIComponent('https://mail.google.com/mail/')}`,
+  });
+  status('Sign in with Google in the new tab.');
+  const onUpdated = async (id, info) => {
+    if (id !== tab.id || !info.url?.startsWith('https://mail.google.com/')) return;
+    chrome.tabs.onUpdated.removeListener(onUpdated);
+    const missing = (await signedInAccounts()).filter(e => !accounts.some(a => a.email === e));
+    const newSessions = missing.filter(e => !before.includes(e));
+    // Signing in to an account that was already open creates no new session: add those instead.
+    const fresh = newSessions.length ? newSessions : missing;
+    fresh.forEach(email => accounts.push({ email, name: '', color: COLORS[accounts.length % COLORS.length] }));
+    await save();
+    status(fresh.length ? `Added ${fresh.join(', ')}.` : 'No new account found: it may already be in the list.');
+  };
+  chrome.tabs.onUpdated.addListener(onUpdated);
 };
 
 const settings = await getSettings();
@@ -119,5 +119,4 @@ notifyEl.onchange = () => {
   status('Saved.');
 };
 
-document.getElementById('color').value = COLORS[accounts.length % COLORS.length];
 render();

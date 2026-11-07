@@ -44,7 +44,9 @@
     const u = new URL(url, location.href);
     if (u.hostname !== 'mail.google.com') return realFetch(url, opts);
     await new Promise(r => setTimeout(r, 350));
-    const email = u.searchParams.get('authuser');
+    // authuser is an address or, when listing signed-in accounts, a session slot number.
+    const user = u.searchParams.get('authuser');
+    const email = /^\d+$/.test(user) ? Object.keys(INBOXES)[user] : user;
     return email in INBOXES
       ? new Response(atom(email), { status: 200 })
       : new Response('<html>Sign in</html>', { status: 401 });
@@ -78,7 +80,10 @@
 
   const describe = url => {
     const u = new URL(url);
-    if (u.hostname === 'accounts.google.com') return `Demo: would open Google sign-in for ${u.searchParams.get('Email')}`;
+    if (u.hostname === 'accounts.google.com') {
+      const email = u.searchParams.get('Email');
+      return email ? `Demo: would open Google sign-in for ${email}` : 'Demo: would open Google sign-in';
+    }
     if (u.searchParams.get('view') === 'cm') return `Demo: would open a new compose window for ${u.searchParams.get('authuser')}`;
     if (u.searchParams.get('message_id')) return `Demo: would open this conversation in ${u.searchParams.get('account_id')}`;
     return `Demo: would open the inbox of ${u.searchParams.get('authuser')}`;
@@ -88,8 +93,27 @@
     storage: { sync: area(store.sync), local: area(store.local), onChanged: { addListener() {} } },
     action: { async setBadgeText() {}, async setBadgeBackgroundColor() {} },
     notifications: { create() {} },
-    tabs: { create: ({ url }) => toast(describe(url)) },
-    runtime: { openOptionsPage: () => toast('Demo: would open the settings page') },
+    tabs: {
+      create: async ({ url }) => (toast(describe(url)), { id: 1 }),
+      // Pretend the sign-in tab finished with a new account signed in.
+      onUpdated: {
+        addListener(fn) {
+          setTimeout(() => {
+            INBOXES['alex.photos@gmail.com'] ??= [];
+            fn(1, { url: 'https://mail.google.com/mail/u/0/' });
+          }, 1500);
+        },
+        removeListener() {},
+      },
+    },
+    runtime: {
+      openOptionsPage: () => toast('Demo: would open the settings page'),
+      // The extension's pages fetch the feed through the service worker; the demo answers here.
+      async sendMessage({ feed }) {
+        const res = await window.fetch(`https://mail.google.com/mail/feed/atom?authuser=${encodeURIComponent(feed)}`);
+        return { ok: res.ok, xml: await res.text() };
+      },
+    },
   };
   window.close = () => {};
 })();
