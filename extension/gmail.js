@@ -38,14 +38,25 @@ function tag(xml, name) {
 }
 
 // Service workers have no DOMParser, so the feed is parsed with regular expressions.
+// A signed-out account makes Gmail answer 401, which a page turns into the browser's own
+// password dialog; the service worker has no window to show it in, so pages fetch through it.
+export async function fetchFeed(authuser) {
+  if (typeof window !== 'undefined') {
+    const r = await chrome.runtime.sendMessage({ feed: authuser });
+    if (!r) throw new Error('network');
+    return r;
+  }
+  const res = await fetch(
+    `https://mail.google.com/mail/feed/atom?authuser=${encodeURIComponent(authuser)}`,
+    { credentials: 'include', cache: 'no-store' }
+  );
+  return { ok: res.ok, xml: await res.text() };
+}
+
 export async function fetchInbox(email) {
   try {
-    const res = await fetch(
-      `https://mail.google.com/mail/feed/atom?authuser=${encodeURIComponent(email)}`,
-      { credentials: 'include', cache: 'no-store' }
-    );
-    const xml = await res.text();
-    if (!res.ok || !xml.includes('<fullcount>')) return { email, ok: false, error: 'login' };
+    const { ok, xml } = await fetchFeed(email);
+    if (!ok || !xml.includes('<fullcount>')) return { email, ok: false, error: 'login' };
 
     // When the account is not signed in, Google may answer for a different one: discard it.
     const head = xml.split('<entry>')[0];
@@ -71,6 +82,22 @@ export async function fetchInbox(email) {
   } catch {
     return { email, ok: false, error: 'network' };
   }
+}
+
+// Emails of the Google accounts signed in to the browser, read from each session slot's feed.
+// shortcut: checks the first 10 slots, raise it if someone signs in to more accounts.
+export async function signedInAccounts() {
+  const emails = await Promise.all([...Array(10).keys()].map(async i => {
+    try {
+      const { ok, xml } = await fetchFeed(i);
+      if (!ok) return null;
+      const title = tag(xml.split('<entry>')[0], 'title');
+      return (title.match(/\S+@\S+/) || [])[0]?.toLowerCase() || null;
+    } catch {
+      return null;
+    }
+  }));
+  return [...new Set(emails.filter(Boolean))];
 }
 
 async function updateBadge(results) {

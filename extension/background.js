@@ -1,4 +1,4 @@
-import { getSettings, refreshAll } from './gmail.js';
+import { getSettings, refreshAll, fetchFeed } from './gmail.js';
 
 const ALARM = 'refresh';
 
@@ -32,4 +32,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.notifications.onClicked.addListener(id => {
   chrome.tabs.create({ url: id });
   chrome.notifications.clear(id);
+});
+
+chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  if (!('feed' in msg)) return;
+  fetchFeed(msg.feed).then(reply, () => reply(null));
+  return true;
 });
